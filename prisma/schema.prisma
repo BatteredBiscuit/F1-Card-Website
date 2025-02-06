@@ -1,0 +1,58 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Make sure to set this in your .env file.
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Organization {
+  id        Int       @id @default(autoincrement())
+  name      String
+  join_code String    @unique
+  createdAt DateTime  @default(now())
+  users     User[]
+  vehicles  Vehicle[]
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  organizationId  Int
+  email           String    @unique
+  hashed_password String
+  role            String    // You can add an enum for stricter types if desired.
+  first_name      String?
+  last_name       String?
+  createdAt       DateTime  @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  vehicles        Vehicle[]    @relation("DriverVehicles")
+}
+
+model Vehicle {
+  id              Int       @id @default(autoincrement())
+  organizationId  Int
+  driverId        Int?      // Optional; if a driver is assigned.
+  license_plate   String    @unique
+  model           String?
+  createdAt       DateTime  @default(now())
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  driver          User?        @relation("DriverVehicles", fields: [driverId], references: [id])
+  routes          Route[]
+}
+
+model Route {
+  id         Int      @id @default(autoincrement())
+  vehicleId  Int
+  route_data String
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  vehicle    Vehicle  @relation(fields: [vehicleId], references: [id])
+
+  @@unique([vehicleId], map: "unique_active_route")
+}
